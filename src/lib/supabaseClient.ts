@@ -1,7 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const rawAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Clean up copy-paste artifacts (whitespaces, carriage returns, non-ASCII/invisible Unicode characters)
+const sanitizeEnvVar = (val: string) => {
+  return val
+    .replace(/[\s\n\r]/g, '')            // Remove all spaces, tabs, carriage returns, and newlines
+    .replace(/[^\x20-\x7E]/g, '')        // Remove any non-printable or non-ASCII characters (ISO-8859-1 compliance)
+    .trim();
+};
+
+const supabaseUrl = sanitizeEnvVar(rawUrl);
+const supabaseAnonKey = sanitizeEnvVar(rawAnonKey);
 
 // Check if credentials are valid and not the default placeholders
 export const isSupabaseConfigured = 
