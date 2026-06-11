@@ -25,8 +25,13 @@ export function useBoardState() {
 
       if (error) throw error;
       setAppointments(data || []);
-    } catch (err) {
-      console.error('Error fetching appointments from Supabase:', err);
+    } catch (err: any) {
+      console.error(
+        'Error fetching appointments from Supabase:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
     } finally {
       setLoading(false);
     }
@@ -106,8 +111,13 @@ export function useBoardState() {
 
       if (error) throw error;
       setAppointments((prev) => [...prev, data].sort((a, b) => a.position - b.position));
-    } catch (err) {
-      console.error('Failed to add appointment:', err);
+    } catch (err: any) {
+      console.error(
+        'Failed to add appointment:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
     }
   };
 
@@ -130,8 +140,13 @@ export function useBoardState() {
         .eq('id', id);
 
       if (error) throw error;
-    } catch (err) {
-      console.error('Failed to update appointment:', err);
+    } catch (err: any) {
+      console.error(
+        'Failed to update appointment:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
       fetchAppointments();
     }
   };
@@ -170,8 +185,13 @@ export function useBoardState() {
             .eq('id', currentBatch[i].id);
         }
       }
-    } catch (err) {
-      console.error('Failed to delete appointment:', err);
+    } catch (err: any) {
+      console.error(
+        'Failed to delete appointment:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
       fetchAppointments();
     }
   };
@@ -282,8 +302,13 @@ export function useBoardState() {
       }
 
       await Promise.all([...targetUpdates, ...sourceUpdates]);
-    } catch (err) {
-      console.error('Failed to sync drag reorder to Supabase:', err);
+    } catch (err: any) {
+      console.error(
+        'Failed to sync drag reorder to Supabase:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
       fetchAppointments(); // Revert to database state on error
     }
   };
@@ -302,8 +327,13 @@ export function useBoardState() {
 
       if (error) throw error;
       setAppointments([]);
-    } catch (err) {
-      console.error('Failed to reset board:', err);
+    } catch (err: any) {
+      console.error(
+        'Failed to reset board:', 
+        err?.message || err, 
+        err?.details || '', 
+        err?.hint || ''
+      );
     }
   };
 
