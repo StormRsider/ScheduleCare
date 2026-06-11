@@ -216,6 +216,13 @@ export default function DashboardPage() {
           </div>
         </header>
 
+        {/* Database disconnection alert banner */}
+        {!isSupabaseConnected && (
+          <div className="bg-clinic-beige/40 border border-clinic-beige-dark/30 p-4.5 rounded-3xl text-center text-xs sm:text-sm font-bold text-black shadow-xs animate-pulse">
+            ⚠️ Database Disconnected: Please configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel Environment Variables, then redeploy.
+          </div>
+        )}
+
         {/* Six Columns Grid layout representing days Monday to Saturday */}
         <main className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
           {DAYS_OF_WEEK.map((day) => (

@@ -77,6 +77,11 @@ export function useBoardState() {
   // CRUD Actions
   // Add Appointment
   const addAppointment = async (patientName: string, patientCode: string, day: DayOfWeek, batch: Batch) => {
+    if (!supabase) {
+      alert("Error: Database connection is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your Vercel Environment Variables, then redeploy.");
+      return;
+    }
+
     const currentBatchApps = appointments.filter(
       (app) => app.day_of_week === day && app.batch === batch
     );
@@ -92,7 +97,6 @@ export function useBoardState() {
       position: nextPos,
     };
 
-    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -109,12 +113,16 @@ export function useBoardState() {
 
   // Update Appointment (Name and Code)
   const updateAppointment = async (id: string, updates: Partial<Pick<Appointment, 'patient_name' | 'patient_code'>>) => {
+    if (!supabase) {
+      alert("Error: Database connection is not configured.");
+      return;
+    }
+
     // Optimistic Update
     setAppointments((prev) =>
       prev.map((app) => (app.id === id ? { ...app, ...updates } : app))
     );
 
-    if (!supabase) return;
     try {
       const { error } = await supabase
         .from('appointments')
@@ -130,13 +138,17 @@ export function useBoardState() {
 
   // Delete Appointment
   const deleteAppointment = async (id: string) => {
+    if (!supabase) {
+      alert("Error: Database connection is not configured.");
+      return;
+    }
+
     const target = appointments.find((a) => a.id === id);
     if (!target) return;
 
     // Optimistic Update
     setAppointments((prev) => prev.filter((app) => app.id !== id));
 
-    if (!supabase) return;
     try {
       const { error } = await supabase
         .from('appointments')
@@ -171,6 +183,11 @@ export function useBoardState() {
     targetBatch: Batch,
     targetIdx?: number
   ) => {
+    if (!supabase) {
+      alert("Error: Database connection is not configured.");
+      return;
+    }
+
     const target = appointments.find((a) => a.id === id);
     if (!target) return;
 
@@ -229,7 +246,6 @@ export function useBoardState() {
     setAppointments(updatedLocalApps);
 
     // 6. Write changes to backend database
-    if (!supabase) return;
     const client = supabase;
     try {
       // Update the dragged item day/batch/position
@@ -274,7 +290,10 @@ export function useBoardState() {
 
   // Reset Board (Clear all appointments)
   const resetBoard = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      alert("Error: Database connection is not configured.");
+      return;
+    }
     try {
       const { error } = await supabase
         .from('appointments')
