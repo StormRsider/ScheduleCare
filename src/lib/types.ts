@@ -11,12 +11,15 @@ export interface Patient {
   updated_at?: string;
 }
 
+export type PatientStatus = 'WAITING' | 'IN_SESSION' | 'COMPLETED';
+
 export interface Appointment {
   id: string;
   patient_id: string;
   day_of_week: DayOfWeek;
   batch: Batch;
   position: number;
+  status?: PatientStatus;
   created_at?: string;
   updated_at?: string;
   // Joined fields from patient table for ease of rendering

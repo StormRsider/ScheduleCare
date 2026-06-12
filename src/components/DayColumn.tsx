@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Appointment, DayOfWeek, Batch, DAY_LABELS, BATCH_LABELS } from '../lib/types';
+import { Appointment, DayOfWeek, Batch, PatientStatus, DAY_LABELS, BATCH_LABELS } from '../lib/types';
 import { PatientCard } from './PatientCard';
 import { Plus, Sun, Moon } from 'lucide-react';
 
@@ -12,6 +12,7 @@ interface DayColumnProps {
   onDeletePatient: (id: string) => void;
   onDuplicatePatient: (appointment: Appointment) => void;
   onMoveAppointment: (id: string, day: DayOfWeek, batch: Batch, position?: number) => void;
+  onUpdateStatus?: (id: string, status: PatientStatus) => void;
 }
 
 // Strictly map Monday-Saturday to one design system variable per day
@@ -98,7 +99,8 @@ export const DayColumn: React.FC<DayColumnProps> = ({
   onEditPatient,
   onDeletePatient,
   onDuplicatePatient,
-  onMoveAppointment
+  onMoveAppointment,
+  onUpdateStatus
 }) => {
   const [activeDragBatch, setActiveDragBatch] = useState<Batch | null>(null);
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
@@ -230,6 +232,7 @@ export const DayColumn: React.FC<DayColumnProps> = ({
                     onEdit={onEditPatient}
                     onDelete={onDeletePatient}
                     onDuplicate={onDuplicatePatient}
+                    onUpdateStatus={onUpdateStatus || (() => {})}
                   />
                 </div>
               );

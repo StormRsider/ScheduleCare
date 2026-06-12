@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   day_of_week TEXT NOT NULL CHECK (day_of_week IN ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY')),
   batch TEXT NOT NULL CHECK (batch IN ('MORNING', 'EVENING')),
   position INTEGER DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING', 'IN_SESSION', 'COMPLETED')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );

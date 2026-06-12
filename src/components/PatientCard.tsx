@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Appointment } from '../lib/types';
+import { Appointment, PatientStatus } from '../lib/types';
 import { Edit2, Trash2, GripVertical, Copy } from 'lucide-react';
 
 interface PatientCardProps {
@@ -9,6 +9,7 @@ interface PatientCardProps {
   onEdit: (appointment: Appointment) => void;
   onDelete: (id: string) => void;
   onDuplicate: (appointment: Appointment) => void;
+  onUpdateStatus: (id: string, status: PatientStatus) => void;
 }
 
 const cardStyles = {
@@ -39,13 +40,32 @@ const cardStyles = {
   }
 };
 
+const statusConfigs = {
+  WAITING: {
+    label: 'Waiting',
+    pillClass: 'bg-clinic-cream/40 text-black/60 border-clinic-blue/15',
+    dotClass: 'bg-black/30'
+  },
+  IN_SESSION: {
+    label: 'In Session',
+    pillClass: 'bg-clinic-blue/20 text-black border-clinic-blue/50 font-bold',
+    dotClass: 'bg-clinic-blue animate-pulse'
+  },
+  COMPLETED: {
+    label: 'Completed',
+    pillClass: 'bg-clinic-lightblue/30 text-black/50 border-clinic-lightblue/60',
+    dotClass: 'bg-clinic-lightblue'
+  }
+};
+
 export const PatientCard: React.FC<PatientCardProps> = ({
   appointment,
   isReadOnly,
   colorKey,
   onEdit,
   onDelete,
-  onDuplicate
+  onDuplicate,
+  onUpdateStatus
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -65,7 +85,19 @@ export const PatientCard: React.FC<PatientCardProps> = ({
     if (target) target.style.opacity = '1';
   };
 
+  const handleCycleStatus = () => {
+    if (isReadOnly) return;
+    const current = appointment.status || 'WAITING';
+    let next: PatientStatus = 'WAITING';
+    if (current === 'WAITING') next = 'IN_SESSION';
+    else if (current === 'IN_SESSION') next = 'COMPLETED';
+    else if (current === 'COMPLETED') next = 'WAITING';
+    
+    onUpdateStatus(appointment.id, next);
+  };
+
   const styles = cardStyles[colorKey] || cardStyles['clinic-blue'];
+  const currentStatus = appointment.status || 'WAITING';
 
   return (
     <div
@@ -77,17 +109,18 @@ export const PatientCard: React.FC<PatientCardProps> = ({
           ? 'cursor-default px-2.5 py-1.5' 
           : 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 px-3.5 py-3'
         }
+        ${currentStatus === 'COMPLETED' ? 'opacity-65' : ''}
         ${styles.bg} ${styles.border}
       `}
     >
-      {/* Patient Code and Name Layout */}
-      <div className="flex items-center gap-2.5 min-w-0">
+      {/* Patient Code, Name and Status Layout */}
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
         {!isReadOnly && (
           <span className="text-black opacity-30 cursor-grab shrink-0">
             <GripVertical size={16} />
           </span>
         )}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Patient Code / Token */}
           <span className={`font-black tracking-wider rounded-md uppercase shrink-0 ${styles.badge}
             ${isReadOnly ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'}
@@ -95,8 +128,11 @@ export const PatientCard: React.FC<PatientCardProps> = ({
             {appointment.patient_code}
           </span>
           {/* Patient Name & Optional Phone Stack */}
-          <div className="flex flex-col min-w-0 text-left">
-            <span className={`font-bold text-black truncate leading-tight ${isReadOnly ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
+          <div className="flex flex-col min-w-0 text-left mr-1">
+            <span className={`font-bold text-black truncate leading-tight 
+              ${isReadOnly ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}
+              ${currentStatus === 'COMPLETED' ? 'line-through text-black/50' : ''}
+            `}>
               {appointment.patient_name}
             </span>
             {!isReadOnly && appointment.patient_phone && (
@@ -105,12 +141,26 @@ export const PatientCard: React.FC<PatientCardProps> = ({
               </span>
             )}
           </div>
+
+          {/* Status badge */}
+          <button
+            type="button"
+            onClick={handleCycleStatus}
+            disabled={isReadOnly}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider shrink-0 transition-all select-none
+              ${isReadOnly ? 'cursor-default' : 'cursor-pointer hover:scale-[1.03] active:scale-95'}
+              ${statusConfigs[currentStatus].pillClass}
+            `}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${statusConfigs[currentStatus].dotClass}`} />
+            {statusConfigs[currentStatus].label}
+          </button>
         </div>
       </div>
 
       {/* Edit/Duplicate/Delete Actions (Hidden in Read-Only Mode) */}
       {!isReadOnly && (
-        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 shrink-0">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 shrink-0 ml-2">
           {/* Duplicate Action */}
           <button
             onClick={() => onDuplicate(appointment)}

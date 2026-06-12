@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, DayOfWeek, Batch, Patient, DAYS_OF_WEEK, BATCHES, DAY_LABELS, BATCH_LABELS } from '../lib/types';
-import { X, User, Hash, Calendar, Layers, Phone, Search } from 'lucide-react';
+import { X, User, Hash, Calendar, Layers, Phone, Search, Trash2 } from 'lucide-react';
 
 interface PatientModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface PatientModalProps {
     slots: Array<{ day: DayOfWeek; batch: Batch }>
   ) => void;
   patients: Patient[];
+  onDeleteRegistryPatient: (id: string) => Promise<void>;
   appointment?: Appointment | null; // If present, we edit.
   duplicateFrom?: Appointment | null; // If present, we duplicate.
   defaultDay?: DayOfWeek;
@@ -24,6 +25,7 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   onClose,
   onSave,
   patients,
+  onDeleteRegistryPatient,
   appointment,
   duplicateFrom,
   defaultDay = 'MONDAY',
@@ -253,17 +255,32 @@ export const PatientModal: React.FC<PatientModalProps> = ({
               <div className="border border-clinic-blue/20 rounded-xl bg-clinic-cream/10 p-1.5 max-h-48 overflow-y-auto space-y-1">
                 {filteredRegistry.length > 0 ? (
                   filteredRegistry.map((pat) => (
-                    <button
+                    <div
                       key={pat.id}
-                      type="button"
                       onClick={() => handleSelectPatient(pat)}
-                      className="w-full flex items-center justify-between p-2 rounded-lg text-left text-xs font-semibold text-black hover:bg-clinic-lightblue/30 transition-all cursor-pointer"
+                      className="w-full flex items-center justify-between p-1.5 px-2 rounded-lg hover:bg-clinic-lightblue/30 transition-all cursor-pointer group/item"
                     >
-                      <span className="truncate">{pat.name}</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-clinic-lightblue/40 text-black border border-clinic-lightblue/60 rounded uppercase shrink-0">
-                        {pat.code}
-                      </span>
-                    </button>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="truncate text-xs font-semibold text-black">{pat.name}</span>
+                        <span className="text-[9px] font-black px-1.5 py-0.5 bg-clinic-lightblue/40 text-black border border-clinic-lightblue/60 rounded uppercase shrink-0">
+                          {pat.code}
+                        </span>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (confirm(`Are you sure you want to permanently delete ${pat.name} from the registry? This will remove all their scheduled slots as well.`)) {
+                            await onDeleteRegistryPatient(pat.id);
+                          }
+                        }}
+                        className="p-1 rounded-md text-black/45 hover:text-black hover:bg-clinic-beige-dark/30 transition-all cursor-pointer shrink-0 opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
+                        title="Delete patient from registry"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-4 text-xs font-semibold text-black/50">

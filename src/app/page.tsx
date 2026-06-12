@@ -27,6 +27,8 @@ export default function DashboardPage() {
     role,
     isSupabaseConnected,
     createPatient,
+    deletePatientFromRegistry,
+    updateAppointmentStatus,
     addAppointment,
     updateAppointment,
     deleteAppointment,
@@ -251,6 +253,7 @@ export default function DashboardPage() {
               onDeletePatient={handleDeletePatient}
               onDuplicatePatient={handleDuplicatePatient}
               onMoveAppointment={moveAppointment}
+              onUpdateStatus={updateAppointmentStatus}
             />
           ))}
         </main>
@@ -276,6 +279,7 @@ export default function DashboardPage() {
         }}
         onSave={handleSavePatient}
         patients={patients}
+        onDeleteRegistryPatient={deletePatientFromRegistry}
         appointment={editingApp}
         duplicateFrom={duplicateFromApp}
         defaultDay={modalDefaultDay}

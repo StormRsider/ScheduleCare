@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Appointment, Patient, DayOfWeek, Batch } from './types';
+import { Appointment, Patient, DayOfWeek, Batch, PatientStatus } from './types';
 import { supabase } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
 
@@ -58,6 +58,7 @@ export function useBoardState() {
           day_of_week,
           batch,
           position,
+          status,
           created_at,
           updated_at,
           patients (
@@ -77,6 +78,7 @@ export function useBoardState() {
         day_of_week: item.day_of_week,
         batch: item.batch,
         position: item.position,
+        status: item.status || 'WAITING',
         created_at: item.created_at,
         updated_at: item.updated_at,
         patient_name: item.patients?.name || 'Unknown',
@@ -115,6 +117,7 @@ export function useBoardState() {
             const newRecord = payload.new as any;
             const pat = patientsRef.current.find((p) => p.id === newRecord.patient_id);
             const formatted: Appointment = {
+              status: 'WAITING',
               ...newRecord,
               patient_name: pat?.name || 'Unknown',
               patient_code: pat?.code || '',
@@ -128,6 +131,7 @@ export function useBoardState() {
             const updatedRecord = payload.new as any;
             const pat = patientsRef.current.find((p) => p.id === updatedRecord.patient_id);
             const formatted: Appointment = {
+              status: 'WAITING',
               ...updatedRecord,
               patient_name: pat?.name || 'Unknown',
               patient_code: pat?.code || '',
@@ -496,6 +500,46 @@ export function useBoardState() {
     }
   };
 
+  // Delete Patient from registry (deletes patient globally, cascading to appointments)
+  const deletePatientFromRegistry = async (id: string) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Update local states optimistically
+      setPatients((prev) => prev.filter((p) => p.id !== id));
+      setAppointments((prev) => prev.filter((app) => app.patient_id !== id));
+    } catch (err: any) {
+      console.error('Failed to delete patient from registry:', err?.message || err);
+    }
+  };
+
+  // Update Appointment Status
+  const updateAppointmentStatus = async (id: string, status: PatientStatus) => {
+    if (!supabase) return;
+
+    // Optimistically update locally
+    setAppointments((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status } : app))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Failed to update appointment status:', err?.message || err);
+    }
+  };
+
   return {
     appointments,
     patients,
@@ -505,6 +549,8 @@ export function useBoardState() {
     isSupabaseConnected: !!supabase,
     createPatient,
     updatePatientDetails,
+    deletePatientFromRegistry,
+    updateAppointmentStatus,
     addAppointment,
     updateAppointment,
     deleteAppointment,
