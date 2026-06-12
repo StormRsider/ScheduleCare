@@ -110,7 +110,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({
 
       {/* Edit/Duplicate/Delete Actions (Hidden in Read-Only Mode) */}
       {!isReadOnly && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 shrink-0">
           {/* Duplicate Action */}
           <button
             onClick={() => onDuplicate(appointment)}
