@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ScheduleCare - Clinic Whiteboard Scheduler",
-  description: "A real-time whiteboard scheduler replacing physiotherapy clinic whiteboard schedules.",
+  title: "Care Whiteboard - Clinic Scheduler",
+  description: "A real-time whiteboard scheduler for clinic patient scheduling.",
 };
 
 export default function RootLayout({

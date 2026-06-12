@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Appointment, DayOfWeek, Batch, DAYS_OF_WEEK, BATCHES, DAY_LABELS, BATCH_LABELS } from '../lib/types';
-import { X, User, Hash, Calendar, Layers } from 'lucide-react';
+import { Appointment, DayOfWeek, Batch, Patient, DAYS_OF_WEEK, BATCHES, DAY_LABELS, BATCH_LABELS } from '../lib/types';
+import { X, User, Hash, Calendar, Layers, Phone, Search } from 'lucide-react';
 
 interface PatientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, code: string, slots: Array<{ day: DayOfWeek; batch: Batch }>) => void;
+  onSave: (
+    patientId: string | null,
+    name: string,
+    code: string,
+    phone: string,
+    slots: Array<{ day: DayOfWeek; batch: Batch }>
+  ) => void;
+  patients: Patient[];
   appointment?: Appointment | null; // If present, we edit.
   duplicateFrom?: Appointment | null; // If present, we duplicate.
   defaultDay?: DayOfWeek;
@@ -16,13 +23,18 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  patients,
   appointment,
   duplicateFrom,
   defaultDay = 'MONDAY',
   defaultBatch = 'MORNING'
 }) => {
+  const [mode, setMode] = useState<'existing' | 'new'>('existing');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [phone, setPhone] = useState('');
   const [day, setDay] = useState<DayOfWeek>('MONDAY');
   const [batch, setBatch] = useState<Batch>('MORNING');
   const [selectedSlots, setSelectedSlots] = useState<Array<{ day: DayOfWeek; batch: Batch }>>([]);
@@ -32,23 +44,33 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (appointment) {
-        setName(appointment.patient_name);
-        setCode(appointment.patient_code);
+        setName(appointment.patient_name || '');
+        setCode(appointment.patient_code || '');
+        setPhone(appointment.patient_phone || '');
         setDay(appointment.day_of_week);
         setBatch(appointment.batch);
         setSelectedSlots([{ day: appointment.day_of_week, batch: appointment.batch }]);
+        setSelectedPatientId(appointment.patient_id);
+        setMode('new'); // mode doesn't matter much for edit, show form
       } else if (duplicateFrom) {
-        setName(duplicateFrom.patient_name);
-        setCode(duplicateFrom.patient_code);
+        setName(duplicateFrom.patient_name || '');
+        setCode(duplicateFrom.patient_code || '');
+        setPhone(duplicateFrom.patient_phone || '');
         setDay(duplicateFrom.day_of_week);
         setBatch(duplicateFrom.batch);
         setSelectedSlots([{ day: duplicateFrom.day_of_week, batch: duplicateFrom.batch }]);
+        setSelectedPatientId(duplicateFrom.patient_id);
+        setMode('existing');
       } else {
         setName('');
         setCode('');
+        setPhone('');
         setDay(defaultDay);
         setBatch(defaultBatch);
         setSelectedSlots([{ day: defaultDay, batch: defaultBatch }]);
+        setSelectedPatientId(null);
+        setMode('existing');
+        setSearchTerm('');
       }
       setError('');
     }
@@ -56,13 +78,13 @@ export const PatientModal: React.FC<PatientModalProps> = ({
 
   // 2. Suggest code tokens when active slot changes, if code is empty
   useEffect(() => {
-    if (isOpen && !appointment && !duplicateFrom && !code) {
+    if (isOpen && !appointment && !duplicateFrom && !code && mode === 'new') {
       const activeBatch = selectedSlots[0]?.batch || batch;
       const prefix = activeBatch === 'MORNING' ? 'M' : 'E';
       const randomId = Math.floor(Math.random() * 90) + 10;
       setCode(`${prefix}-${randomId}`);
     }
-  }, [selectedSlots, isOpen, appointment, duplicateFrom]);
+  }, [selectedSlots, isOpen, appointment, duplicateFrom, mode, code, batch]);
 
   if (!isOpen) return null;
 
@@ -84,6 +106,21 @@ export const PatientModal: React.FC<PatientModalProps> = ({
     });
   };
 
+  const handleSelectPatient = (pat: Patient) => {
+    setSelectedPatientId(pat.id);
+    setName(pat.name);
+    setCode(pat.code);
+    setPhone(pat.phone || '');
+    setSearchTerm('');
+  };
+
+  const handleClearSelection = () => {
+    setSelectedPatientId(null);
+    setName('');
+    setCode('');
+    setPhone('');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -94,6 +131,10 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       setError('Patient token/code is required');
       return;
     }
+    if (mode === 'existing' && !selectedPatientId && !appointment) {
+      setError('Please select a patient from the registry or switch to the "New Patient" tab.');
+      return;
+    }
 
     const slotsToSave = appointment ? [{ day, batch }] : selectedSlots;
     if (slotsToSave.length === 0) {
@@ -101,9 +142,20 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       return;
     }
 
-    onSave(name.trim(), code.trim().toUpperCase(), slotsToSave);
+    onSave(
+      (mode === 'existing' && !appointment) ? selectedPatientId : (appointment ? selectedPatientId : null),
+      name.trim(),
+      code.trim().toUpperCase(),
+      phone.trim(),
+      slotsToSave
+    );
     onClose();
   };
+
+  const filteredRegistry = patients.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-fade-in">
@@ -120,7 +172,7 @@ export const PatientModal: React.FC<PatientModalProps> = ({
               ? 'Edit Patient Details' 
               : duplicateFrom 
                 ? 'Duplicate Patient' 
-                : 'Add New Patient'
+                : 'Add Patient to Board'
             }
           </h2>
           <button
@@ -134,49 +186,178 @@ export const PatientModal: React.FC<PatientModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-2.5 rounded-xl bg-clinic-beige/30 border border-clinic-beige-dark/45 text-xs font-bold text-black text-center">
+            <div className="p-2.5 rounded-xl bg-clinic-beige/30 border border-clinic-beige-dark/45 text-xs font-bold text-black text-center animate-pulse">
               {error}
             </div>
           )}
 
-          {/* Patient Name */}
-          <div>
-            <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
-              Patient Name *
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
-                <User size={15} />
-              </span>
-              <input
-                type="text"
-                autoFocus
-                placeholder="Enter patient full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
-              />
+          {/* Toggle existing vs new patient registry */}
+          {!appointment && (
+            <div className="flex rounded-xl bg-clinic-lightblue/20 p-1 border border-clinic-blue/15 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('existing');
+                  handleClearSelection();
+                  setError('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer text-center
+                  ${mode === 'existing'
+                    ? 'bg-clinic-blue border border-clinic-blue/20 text-black shadow-xs'
+                    : 'text-black/60 hover:text-black hover:bg-clinic-cream/30'
+                  }
+                `}
+              >
+                🔍 Search Directory
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('new');
+                  handleClearSelection();
+                  setError('');
+                }}
+                className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer text-center
+                  ${mode === 'new'
+                    ? 'bg-clinic-blue border border-clinic-blue/20 text-black shadow-xs'
+                    : 'text-black/60 hover:text-black hover:bg-clinic-cream/30'
+                  }
+                `}
+              >
+                ✨ New Patient
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* Patient Code / Token */}
-          <div>
-            <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
-              Patient Token / Code *
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
-                <Hash size={15} />
-              </span>
-              <input
-                type="text"
-                placeholder="e.g. M-01 or E-12"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
-              />
+          {/* Render search screen for existing patient */}
+          {mode === 'existing' && !selectedPatientId && !appointment && (
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
+                Search Patient Registry
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
+                  <Search size={15} />
+                </span>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type name or token..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
+                />
+              </div>
+
+              {/* Scrollable list of patients */}
+              <div className="border border-clinic-blue/20 rounded-xl bg-clinic-cream/10 p-1.5 max-h-48 overflow-y-auto space-y-1">
+                {filteredRegistry.length > 0 ? (
+                  filteredRegistry.map((pat) => (
+                    <button
+                      key={pat.id}
+                      type="button"
+                      onClick={() => handleSelectPatient(pat)}
+                      className="w-full flex items-center justify-between p-2 rounded-lg text-left text-xs font-semibold text-black hover:bg-clinic-lightblue/30 transition-all cursor-pointer"
+                    >
+                      <span className="truncate">{pat.name}</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-clinic-lightblue/40 text-black border border-clinic-lightblue/60 rounded uppercase shrink-0">
+                        {pat.code}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-xs font-semibold text-black/50">
+                    No patients found in directory.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Render selected/registered patient details or new form inputs */}
+          {(mode === 'new' || selectedPatientId || appointment) && (
+            <div className="space-y-4 animate-scale-in">
+              {mode === 'existing' && selectedPatientId && !appointment && (
+                <div className="flex items-center justify-between p-3 rounded-xl border border-clinic-blue/30 bg-clinic-lightblue/10 text-xs text-black font-semibold">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-clinic-blue text-black font-bold text-[10px]">
+                      ✓
+                    </span>
+                    <div>
+                      <span className="block font-bold">Linked to Patient Registry</span>
+                      <span className="text-[9px] text-black/60 font-medium">Updates here save globally.</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="px-2.5 py-1 text-[9px] font-black rounded-lg border border-clinic-beige-dark/35 bg-clinic-beige text-black hover:opacity-85 transition-all cursor-pointer"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
+
+              {/* Patient Name */}
+              <div>
+                <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
+                  Patient Name *
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
+                    <User size={15} />
+                  </span>
+                  <input
+                    type="text"
+                    autoFocus={mode === 'new' && !appointment}
+                    placeholder="Enter patient full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Patient Token Code and Phone */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
+                    Token / Code *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
+                      <Hash size={15} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="e.g. M-01"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1 pl-0.5">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-black/40">
+                      <Phone size={15} />
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9876543210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-clinic-blue/30 rounded-xl bg-clinic-cream/20 focus:bg-clinic-cream/40 focus:outline-none focus:ring-2 focus:ring-clinic-blue/20 focus:border-clinic-blue text-sm font-semibold text-black transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Scheduling slots selector */}
           {appointment ? (

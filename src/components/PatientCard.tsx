@@ -87,17 +87,24 @@ export const PatientCard: React.FC<PatientCardProps> = ({
             <GripVertical size={16} />
           </span>
         )}
-        <div className="flex items-baseline gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           {/* Patient Code / Token */}
           <span className={`font-black tracking-wider rounded-md uppercase shrink-0 ${styles.badge}
             ${isReadOnly ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'}
           `}>
             {appointment.patient_code}
           </span>
-          {/* Patient Name */}
-          <span className={`font-bold text-black truncate ${isReadOnly ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
-            {appointment.patient_name}
-          </span>
+          {/* Patient Name & Optional Phone Stack */}
+          <div className="flex flex-col min-w-0 text-left">
+            <span className={`font-bold text-black truncate leading-tight ${isReadOnly ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
+              {appointment.patient_name}
+            </span>
+            {!isReadOnly && appointment.patient_phone && (
+              <span className="text-[10px] text-black/55 font-bold tracking-wide mt-0.5">
+                📞 {appointment.patient_phone}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

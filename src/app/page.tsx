@@ -21,10 +21,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const {
     appointments,
+    patients,
     loading,
     user,
     role,
     isSupabaseConnected,
+    createPatient,
     addAppointment,
     updateAppointment,
     deleteAppointment,
@@ -70,23 +72,36 @@ export default function DashboardPage() {
 
   // 7. Save Patient Callback
   const handleSavePatient = async (
+    patientId: string | null,
     name: string,
     code: string,
+    phone: string,
     slots: Array<{ day: DayOfWeek; batch: Batch }>
   ) => {
+    let finalPatientId = patientId;
+
     if (editingApp) {
       await updateAppointment(editingApp.id, {
         patient_name: name,
-        patient_code: code
+        patient_code: code,
+        patient_phone: phone
       });
       const newSlot = slots[0];
       if (newSlot && (editingApp.day_of_week !== newSlot.day || editingApp.batch !== newSlot.batch)) {
         await moveAppointment(editingApp.id, newSlot.day, newSlot.batch);
       }
     } else {
+      if (!finalPatientId) {
+        const newPat = await createPatient(name, code, phone);
+        if (!newPat) {
+          alert("Failed to register new patient. Please try again.");
+          return;
+        }
+        finalPatientId = newPat.id;
+      }
       // Create separate records for each selected day/batch combination
       for (const slot of slots) {
-        await addAppointment(name, code, slot.day, slot.batch);
+        await addAppointment(finalPatientId, slot.day, slot.batch);
       }
     }
   };
@@ -94,7 +109,7 @@ export default function DashboardPage() {
   // 8. Delete Patient confirmation
   const handleDeletePatient = async (id: string) => {
     const app = appointments.find((a) => a.id === id);
-    if (app && confirm(`Are you sure you want to remove ${app.patient_name} (${app.patient_code})?`)) {
+    if (app && confirm(`Are you sure you want to remove ${app.patient_name || 'Unknown'} (${app.patient_code || ''})?`)) {
       await deleteAppointment(id);
     }
   };
@@ -108,8 +123,8 @@ export default function DashboardPage() {
 
   // 9. Filtered appointments based on search query
   const filteredAppointments = appointments.filter((app) => {
-    const nameMatch = app.patient_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const codeMatch = app.patient_code.toLowerCase().includes(searchQuery.toLowerCase());
+    const nameMatch = (app.patient_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const codeMatch = (app.patient_code || '').toLowerCase().includes(searchQuery.toLowerCase());
     return nameMatch || codeMatch;
   });
 
@@ -139,7 +154,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-black">
-                  Hope Physio Whiteboard
+                  Care Whiteboard
                 </h1>
                 <p className="text-[10px] font-bold text-black/70 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
                   <Grid3X3 size={11} /> Digital Whiteboard Scheduler
@@ -241,8 +256,13 @@ export default function DashboardPage() {
         </main>
 
         {/* Footer info */}
-        <footer className="text-center py-4 text-[10px] font-bold text-black/70 uppercase tracking-widest flex items-center justify-center gap-1.5">
-          <Calendar size={13} /> {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <footer className="flex flex-col items-center justify-center gap-1.5 py-4 text-[10px] font-bold text-black/70 uppercase tracking-widest">
+          <span className="flex items-center gap-1.5">
+            <Calendar size={13} /> {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </span>
+          <span className="opacity-20 text-[9px] lowercase font-medium tracking-wide">
+            made by adil
+          </span>
         </footer>
 
       </div>
@@ -255,6 +275,7 @@ export default function DashboardPage() {
           setDuplicateFromApp(null);
         }}
         onSave={handleSavePatient}
+        patients={patients}
         appointment={editingApp}
         duplicateFrom={duplicateFromApp}
         defaultDay={modalDefaultDay}

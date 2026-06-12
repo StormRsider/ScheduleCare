@@ -81,7 +81,7 @@ export const SmartboardMode: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-black">
-                ScheduleCare Board
+                Care Whiteboard
               </h1>
               <p className="text-[10px] font-bold text-black/70 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
                 <span className="h-2 w-2 rounded-full bg-clinic-blue animate-ping"></span> Live Waiting Room Display
@@ -141,8 +141,13 @@ export const SmartboardMode: React.FC = () => {
           ))}
         </main>
 
-        <footer className="text-center py-2 text-[10px] font-bold text-black/70 uppercase tracking-widest">
-          ScheduleCare Display Mode • Auto-updates in real-time
+        <footer className="flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-bold text-black/70 uppercase tracking-widest">
+          <span>
+            Care Whiteboard Display Mode • Auto-updates in real-time
+          </span>
+          <span className="opacity-20 text-[9px] lowercase font-medium tracking-wide">
+            made by adil
+          </span>
         </footer>
 
       </div>
